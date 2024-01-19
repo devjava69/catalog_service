@@ -57,6 +57,9 @@ namespace Discount.API.Repositories
                 "WHERE Id = @Id",
                 new { ProducName = coupon.ProductName, Description = coupon.Description, Amount = coupon.Amount, Id = coupon.Id });
 
+            if (affected == 0)
+                return false;
+
             return true;
         }
 
