@@ -1,7 +1,6 @@
 ﻿using Discount.API.Entities;
 using Discount.API.Repositories.Interfaces;
 using Discount.API.Services.Interfaces;
-using Microsoft.VisualBasic;
 using System.Threading.Tasks;
 
 namespace Discount.API.Services
@@ -36,7 +35,7 @@ namespace Discount.API.Services
         {
             var discount = await _discountRepository.UpdateDiscount(coupon);
 
-            if(discount.Equals(0))
+            if (discount.Equals(0))
                 return false;
 
             return true;
