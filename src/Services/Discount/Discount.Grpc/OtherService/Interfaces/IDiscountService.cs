@@ -1,7 +1,7 @@
 ﻿using Discount.Grpc.Entities;
 using System.Threading.Tasks;
 
-namespace Discount.Grpc.Services.Interfaces
+namespace Discount.Grpc.OtherService.Interfaces
 {
     public interface IDiscountService
     {

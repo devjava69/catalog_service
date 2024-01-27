@@ -1,54 +1,75 @@
-﻿using Discount.Grpc.Entities;
+﻿using AutoMapper;
+using Discount.Grpc.Entities;
+using Discount.Grpc.Protos;
 using Discount.Grpc.Repositories.Interfaces;
-using Discount.Grpc.Services.Interfaces;
+using Grpc.Core;
+using Microsoft.Extensions.Logging;
+using System;
 using System.Threading.Tasks;
 
 namespace Discount.Grpc.Services
 {
-    public class DiscountService : IDiscountService
+    public class DiscountService : DiscountProtoService.DiscountProtoServiceBase
     {
-        private readonly IDiscountRepository _discountRepository;
+        private readonly IDiscountRepository _repository;
+        private readonly ILogger<DiscountService> _logger;
+        private readonly IMapper _mapper;
 
-        public DiscountService(IDiscountRepository discountRepository)
+        public DiscountService(IDiscountRepository repository, ILogger<DiscountService> logger, IMapper mapper)
         {
-            _discountRepository = discountRepository;
+            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _mapper = mapper ?? throw new ArgumentNullException(nameof(_mapper));
         }
 
-        public async Task<Coupon> GetDiscount(string productName)
+        public override async Task<CouponModel> GetDiscount(GetDiscountRequest request, ServerCallContext context)
         {
-            var discount = await _discountRepository.GetDiscount(productName);
+            var coupon = await _repository.GetDiscount(request.ProductName);
+            if (coupon == null)
+            {
+                throw new RpcException(new Status(StatusCode.NotFound, $"Discount with ProductName={request.ProductName} is not found !"));
+            }
+            _logger.LogInformation($"Discount is retrieved for ProductName : {coupon.ProductName}, Amount : {coupon.Amount}");
 
-            return discount;
+            var couponModel = _mapper.Map<CouponModel>(coupon);
+            return couponModel;
         }
 
-        public async Task<bool> CreateDiscount(Coupon coupon)
+        public override async Task<CouponModel> CreateDiscount(CreateDiscountRequest request, ServerCallContext context)
         {
-            var discount = await _discountRepository.CreateDiscount(coupon);
+            var coupon = _mapper.Map<Coupon>(request.Coupon);
 
-            if (discount.Equals(0))
-                return false;
+            await _repository.CreateDiscount(coupon);
 
-            return true;
+            _logger.LogInformation($"Discount is successfully created. ProductName : {coupon.ProductName}");
+
+            var couponModel = _mapper.Map<CouponModel>(coupon);
+
+            return couponModel;
         }
 
-        public async Task<bool> UpdateDiscount(Coupon coupon)
+        public override async Task<CouponModel> UpdateDiscount(UpdateDiscountRequest request, ServerCallContext context)
         {
-            var discount = await _discountRepository.UpdateDiscount(coupon);
+            var coupon = _mapper.Map<Coupon>(request.Coupon);
 
-            if (discount.Equals(0))
-                return false;
+            await _repository.UpdateDiscount(coupon);
+            _logger.LogInformation($"Discount is successfully updated. ProductName : {coupon.ProductName}");
 
-            return true;
+            var couponModel = _mapper.Map<CouponModel>(coupon);
+
+            return couponModel;
         }
 
-        public async Task<bool> DeleteDiscount(string productName)
+        public override async Task<DeleteDiscountResponse> DeleteDiscount(DeleteDiscountRequest request, ServerCallContext context)
         {
-            var discount = await _discountRepository.DeleteDiscount(productName);
+            var deleted = await _repository.DeleteDiscount(request.ProductName);
 
-            if (discount.Equals(0))
-                return false;
+            var response = new DeleteDiscountResponse
+            {
+                Success = deleted
+            };
 
-            return true;
+            return response;
         }
     }
 }
